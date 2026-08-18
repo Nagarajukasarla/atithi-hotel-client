@@ -187,6 +187,14 @@ export function RoomDetailsDrawer({
                                 {formatDateTime(bookingOrder.duration.end)}
                             </span>
                         </div>
+                        {bookingOrder.actualCheckOut && (
+                            <div className="flex justify-between items-center text-emerald-600 font-semibold pt-1 border-t border-slate-200/50">
+                                <span>Actual Checkout</span>
+                                <span className="font-bold text-emerald-800">
+                                    {formatDateTime(bookingOrder.actualCheckOut)}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 )}
 

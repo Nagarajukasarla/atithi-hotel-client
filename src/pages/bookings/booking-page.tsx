@@ -229,24 +229,24 @@ export function BookingPage() {
             return;
         }
 
+        const now = new Date();
+        const tomorrow = new Date();
+        tomorrow.setDate(now.getDate() + 1);
+        
+        const formatForInput = (d: Date) => {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const hh = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+        };
+        
+        setCheckIn(formatForInput(now));
+
         if (searchQuery) {
-            setCheckIn(ensureDateTimeLocalString(searchQuery.checkIn, "14:00"));
             setCheckOut(ensureDateTimeLocalString(searchQuery.checkOut, "11:00"));
         } else {
-            const now = new Date();
-            const tomorrow = new Date();
-            tomorrow.setDate(now.getDate() + 1);
-            
-            const formatForInput = (d: Date) => {
-                const yyyy = d.getFullYear();
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                const dd = String(d.getDate()).padStart(2, '0');
-                const hh = String(d.getHours()).padStart(2, '0');
-                const min = String(d.getMinutes()).padStart(2, '0');
-                return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-            };
-            
-            setCheckIn(formatForInput(now));
             setCheckOut(formatForInput(tomorrow));
         }
         setModalStep("form");
@@ -287,8 +287,8 @@ export function BookingPage() {
             const cleanMobile = guest.mobileNumber.replace(/\s/g, "");
             if (!cleanMobile) {
                 errors[`guest-${index}-mobile`] = "Mobile number is required.";
-            } else if (!/^\d{10,15}$/.test(cleanMobile)) {
-                errors[`guest-${index}-mobile`] = "Mobile number must be 10-15 digits.";
+            } else if (!/^\d{10}$/.test(cleanMobile)) {
+                errors[`guest-${index}-mobile`] = "Mobile number must be exactly 10 digits.";
             }
             
             if (guest.age && (parseInt(guest.age, 10) <= 0 || parseInt(guest.age, 10) > 120)) {
@@ -377,9 +377,16 @@ export function BookingPage() {
     };
 
     const handleInputChange = (index: number, field: string, value: string) => {
+        let cleanValue = value;
+        if (field === "aadhaarNumber") {
+            cleanValue = value.replace(/\D/g, "").substring(0, 12);
+        } else if (field === "mobileNumber") {
+            cleanValue = value.replace(/\D/g, "").substring(0, 10);
+        }
+
         setGuests(prev => {
             const next = [...prev];
-            next[index] = { ...next[index], [field]: value };
+            next[index] = { ...next[index], [field]: cleanValue };
             return next;
         });
         if (validationErrors[`guest-${index}-${field}`]) {
@@ -575,14 +582,6 @@ export function BookingPage() {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Guests Details</h3>
-                                        <button
-                                            type="button"
-                                            onClick={handleAddGuest}
-                                            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                            Add Guest
-                                        </button>
                                     </div>
 
                                     <div className="space-y-4">
@@ -657,12 +656,16 @@ export function BookingPage() {
                                                         <input
                                                             type="text"
                                                             placeholder="Phone Number"
+                                                            maxLength={10}
                                                             className={cn(
                                                                 "w-full rounded-md border bg-white px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500",
                                                                 validationErrors[`guest-${index}-mobile`] ? "border-red-400 ring-1 ring-red-400" : "border-slate-200"
                                                             )}
                                                             value={guest.mobileNumber}
-                                                            onChange={e => handleInputChange(index, "mobileNumber", e.target.value)}
+                                                            onChange={e => {
+                                                                const val = e.target.value.replace(/\D/g, '');
+                                                                handleInputChange(index, "mobileNumber", val);
+                                                            }}
                                                         />
                                                         {validationErrors[`guest-${index}-mobile`] && (
                                                             <p className="text-[10px] text-red-500 font-medium">
@@ -707,6 +710,17 @@ export function BookingPage() {
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+
+                                    <div className="flex justify-end pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={handleAddGuest}
+                                            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 shadow-3xs"
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                            Add Guest
+                                        </button>
                                     </div>
                                 </div>
                             </div>

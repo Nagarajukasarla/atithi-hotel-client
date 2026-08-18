@@ -24,6 +24,7 @@ export interface BookingOrder {
     };
     guests?: Guest[];
     payment?: PaymentResponse;
+    actualCheckOut?: string;
 }
 
 export interface Room {

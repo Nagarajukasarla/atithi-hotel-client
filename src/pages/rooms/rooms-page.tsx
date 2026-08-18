@@ -77,6 +77,7 @@ export function RoomsPage() {
                                 identityDocument: g.aadhaarNumber,
                             })) : [],
                             payment: b.payment,
+                            actualCheckOut: b.actualCheckOut,
                         });
                     } else {
                         setActiveBooking(undefined);
@@ -117,6 +118,7 @@ export function RoomsPage() {
                                 identityDocument: g.aadhaarNumber,
                             })) : [],
                             payment: b.payment,
+                            actualCheckOut: b.actualCheckOut,
                         });
                     }
                 }

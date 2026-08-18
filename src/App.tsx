@@ -6,6 +6,7 @@ import { ToastProvider } from "@/context/toast-context";
 import { LoginPage } from "@/pages/auth/login-page";
 import { SignupPage } from "@/pages/auth/signup-page";
 import { BookingPage } from "@/pages/bookings/booking-page";
+import { ManageBookingsPage } from "@/pages/bookings/manage-bookings-page";
 import { NotFoundPage } from "@/pages/not-found/not-found-page";
 import { OverviewPage } from "@/pages/overview/overview-page";
 import { PlansPage } from "@/pages/plans/plans-page";
@@ -26,6 +27,7 @@ export default function App() {
                             <Route element={<OverviewPage />} path="/" />
                             <Route element={<OverviewPage />} path="/overview" />
                             <Route element={<BookingPage />} path="/bookings" />
+                            <Route element={<ManageBookingsPage />} path="/manage-bookings" />
                             <Route element={<RoomsPage />} path="/rooms" />
                             <Route element={<PaymentsPage />} path="/payments" />
                             <Route element={<SettingsPage />} path="/settings" />

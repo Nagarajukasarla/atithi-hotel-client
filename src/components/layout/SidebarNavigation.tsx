@@ -1,4 +1,4 @@
-import { BedDouble, CalendarCheck, CreditCard, LayoutDashboard, LogOut, Settings, Receipt } from "lucide-react";
+import { BedDouble, CalendarCheck, CreditCard, LayoutDashboard, LogOut, Settings, Receipt, Sliders } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SidebarNavigationItem } from "@/components/layout/SidebarNavigationItem";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +18,7 @@ export function SidebarNavigation({ isCollapsed, showLogout = true, onItemClick,
     const navItems = [
         { to: "/overview", label: "Overview", icon: LayoutDashboard },
         { to: "/bookings", label: "Bookings", icon: CalendarCheck },
+        { to: "/manage-bookings", label: "Manage Bookings", icon: Sliders },
         { to: "/payments", label: "Payments", icon: Receipt },
         { to: "/rooms", label: "Rooms", icon: BedDouble },
         { to: "/settings", label: "Settings", icon: Settings },

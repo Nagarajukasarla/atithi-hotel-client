@@ -87,6 +87,24 @@ class BookingService {
             body: payload
         });
     }
+
+    checkInBooking(bookingId: string) {
+        return request<ApiResponse<any>>(`/hotel/bookings/${bookingId}/check-in`, {
+            method: "POST",
+        });
+    }
+
+    checkOutBooking(bookingId: string) {
+        return request<ApiResponse<any>>(`/hotel/bookings/${bookingId}/checkout`, {
+            method: "POST",
+        });
+    }
+
+    getUpcomingCheckouts() {
+        return request<ApiResponse<any>>("/hotel/bookings/checking-out-soon", {
+            method: "GET",
+        });
+    }
 }
 
 export const bookingService = new BookingService();
