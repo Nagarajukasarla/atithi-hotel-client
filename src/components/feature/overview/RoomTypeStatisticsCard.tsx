@@ -6,7 +6,7 @@ export interface RoomTypeStatisticsCardProps {
     title: string;
     active: number;
     total: number;
-    hourlyPrice: number;
+    hourlyPrice?: number;
     dailyPrice: number;
     currency?: string;
     className?: string;
@@ -21,6 +21,8 @@ export function RoomTypeStatisticsCard({
     currency,
     className,
 }: RoomTypeStatisticsCardProps) {
+    const hasHourly = hourlyPrice !== undefined && hourlyPrice !== null && hourlyPrice > 0;
+
     return (
         <div
             className={cn(
@@ -35,8 +37,15 @@ export function RoomTypeStatisticsCard({
                     <span className="text-[20px] font-normal text-[#858d9d] ml-0.5">/{total}</span>
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0f2f5]">
-                <RateDisplay currency={currency} icon={<Clock className="h-4 w-4" />} unit="/hr" value={hourlyPrice} />
+            <div
+                className={cn(
+                    "grid gap-2 pt-2 border-t border-[#f0f2f5]",
+                    hasHourly ? "grid-cols-2" : "grid-cols-1"
+                )}
+            >
+                {hasHourly && (
+                    <RateDisplay currency={currency} icon={<Clock className="h-4 w-4" />} unit="/hr" value={hourlyPrice} />
+                )}
                 <RateDisplay
                     currency={currency}
                     icon={<Calendar className="h-4 w-4" />}

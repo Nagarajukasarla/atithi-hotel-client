@@ -1,9 +1,8 @@
 import * as React from "react";
-import { Plus, X, BedDouble, Crown, Gem } from "lucide-react";
+import { Plus, X, BedDouble, Crown, Gem, Loader2 } from "lucide-react";
 import { CreateOrEditRoomDialog } from "@/components/feature/rooms/CreateOrEditRoomDialog";
 import { RoomBox } from "@/components/feature/rooms/RoomBox";
 import { RoomDetailsDrawer } from "@/components/feature/rooms/RoomDetailsDrawer";
-import { INITIAL_BOOKING_ORDERS } from "@/features/rooms/rooms-data";
 import type { BookingOrder, Room } from "@/types/rooms";
 import { roomService } from "@/api/room-service";
 import { roomTypeService } from "@/api/room-type-service";
@@ -16,31 +15,72 @@ export function RoomsPage() {
     const { toast } = useToast();
     const [rooms, setRooms] = React.useState<Room[]>([]);
     const [availableRoomTypes, setAvailableRoomTypes] = React.useState<RoomTypeConfig[]>([]);
-    const [bookingOrders] = React.useState<Record<string, BookingOrder>>(INITIAL_BOOKING_ORDERS);
+    const [bookingOrders, setBookingOrders] = React.useState<Record<string, BookingOrder>>({});
     const [selectedRoom, setSelectedRoom] = React.useState<Room | null>(null);
     const [activeBooking, setActiveBooking] = React.useState<BookingOrder | undefined>(undefined);
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState<boolean>(false);
     const [isLegendOpen, setIsLegendOpen] = React.useState<boolean>(false);
     const [editingRoom, setEditingRoom] = React.useState<Room | null>(null);
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
     React.useEffect(() => {
         const loadInitialData = async () => {
+            setIsLoading(true);
             try {
-                const roomsRes = await roomService.getRooms();
-                if (roomsRes.success && roomsRes.data) {
-                    setRooms(roomsRes.data);
+                try {
+                    const roomsRes = await roomService.getRooms();
+                    if (roomsRes.success && roomsRes.data) {
+                        setRooms(roomsRes.data);
+                    }
+                } catch (error) {
+                    console.error("Failed to load rooms:", error);
                 }
-            } catch (error) {
-                console.error("Failed to load rooms:", error);
-            }
 
-            try {
-                const typesRes = await roomTypeService.getRoomTypes();
-                if (typesRes.success && typesRes.data) {
-                    setAvailableRoomTypes(typesRes.data);
+                try {
+                    const typesRes = await roomTypeService.getRoomTypes();
+                    if (typesRes.success && typesRes.data) {
+                        setAvailableRoomTypes(typesRes.data);
+                    }
+                } catch (error) {
+                    console.error("Failed to load room types:", error);
                 }
-            } catch (error) {
-                console.error("Failed to load room types:", error);
+
+                try {
+                    const bookingsRes = await bookingService.getAllBookings();
+                    if (bookingsRes.success && bookingsRes.data) {
+                        const activeBookings = bookingsRes.data.filter(
+                            (b: any) => b.status === "CONFIRMED" || b.status === "CHECKED_IN"
+                        );
+                        const ordersMap: Record<string, BookingOrder> = {};
+                        activeBookings.forEach((b: any) => {
+                            ordersMap[String(b.roomId)] = {
+                                id: String(b.id),
+                                roomId: String(b.roomId),
+                                isHourly: b.isHourly,
+                                duration: {
+                                    start: b.checkIn,
+                                    end: b.checkOut,
+                                },
+                                guests: b.guests
+                                    ? b.guests.map((g: any) => ({
+                                          id: String(g.id),
+                                          name: g.name,
+                                          age: g.age,
+                                          phone: g.mobileNumber,
+                                          identityDocument: g.aadhaarNumber,
+                                      }))
+                                    : [],
+                                payment: b.payment,
+                                actualCheckOut: b.actualCheckOut,
+                            };
+                        });
+                        setBookingOrders(ordersMap);
+                    }
+                } catch (error) {
+                    console.error("Failed to load active bookings:", error);
+                }
+            } finally {
+                setIsLoading(false);
             }
         };
         void loadInitialData();
@@ -69,13 +109,15 @@ export function RoomsPage() {
                                 start: b.checkIn,
                                 end: b.checkOut,
                             },
-                            guests: b.guests ? b.guests.map((g: any) => ({
-                                id: String(g.id),
-                                name: g.name,
-                                age: g.age,
-                                phone: g.mobileNumber,
-                                identityDocument: g.aadhaarNumber,
-                            })) : [],
+                            guests: b.guests
+                                ? b.guests.map((g: any) => ({
+                                      id: String(g.id),
+                                      name: g.name,
+                                      age: g.age,
+                                      phone: g.mobileNumber,
+                                      identityDocument: g.aadhaarNumber,
+                                  }))
+                                : [],
                             payment: b.payment,
                             actualCheckOut: b.actualCheckOut,
                         });
@@ -102,7 +144,7 @@ export function RoomsPage() {
                     const activeRes = await bookingService.getActiveBookingForRoom(selectedRoom.id);
                     if (activeRes.success && activeRes.data) {
                         const b = activeRes.data;
-                        setActiveBooking({
+                        const mappedOrder: BookingOrder = {
                             id: String(b.id),
                             roomId: String(b.roomId),
                             isHourly: b.isHourly,
@@ -110,16 +152,23 @@ export function RoomsPage() {
                                 start: b.checkIn,
                                 end: b.checkOut,
                             },
-                            guests: b.guests ? b.guests.map((g: any) => ({
-                                id: String(g.id),
-                                name: g.name,
-                                age: g.age,
-                                phone: g.mobileNumber,
-                                identityDocument: g.aadhaarNumber,
-                            })) : [],
+                            guests: b.guests
+                                ? b.guests.map((g: any) => ({
+                                      id: String(g.id),
+                                      name: g.name,
+                                      age: g.age,
+                                      phone: g.mobileNumber,
+                                      identityDocument: g.aadhaarNumber,
+                                  }))
+                                : [],
                             payment: b.payment,
                             actualCheckOut: b.actualCheckOut,
-                        });
+                        };
+                        setActiveBooking(mappedOrder);
+                        setBookingOrders(prev => ({
+                            ...prev,
+                            [String(b.roomId)]: mappedOrder,
+                        }));
                     }
                 }
                 return true;
@@ -140,7 +189,7 @@ export function RoomsPage() {
                 const res = await roomService.updateRoom(editingRoom.id, roomData);
                 if (res.success && res.data) {
                     const updatedRoom = res.data;
-                    setRooms(prev => prev.map(r => r.id === editingRoom.id ? updatedRoom : r));
+                    setRooms(prev => prev.map(r => (r.id === editingRoom.id ? updatedRoom : r)));
                     // Keep selected room in sync
                     if (selectedRoom?.id === editingRoom.id) {
                         setSelectedRoom(updatedRoom);
@@ -175,7 +224,7 @@ export function RoomsPage() {
             const res = await roomService.updateRoom(roomId, updates);
             if (res.success && res.data) {
                 const updatedRoom = res.data;
-                setRooms(prev => prev.map(r => r.id === roomId ? updatedRoom : r));
+                setRooms(prev => prev.map(r => (r.id === roomId ? updatedRoom : r)));
                 if (selectedRoom?.id === roomId) {
                     setSelectedRoom(updatedRoom);
                 }
@@ -239,7 +288,10 @@ export function RoomsPage() {
         >
             {/* Top bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                <h1 className="text-2xl font-bold text-slate-800 leading-tight">Rooms</h1>
+                <h1 className="text-2xl font-bold text-slate-800 leading-tight flex items-center gap-2">
+                    Rooms
+                    {isLoading && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
+                </h1>
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                     <button
                         className="flex items-center justify-center gap-1.5 rounded-[6px] bg-[#f3f4f6] border border-[#e5e7eb] px-4 py-2 text-sm font-medium text-[#4b5563] shadow-2xs hover:bg-[#e5e7eb] transition-all flex-1 sm:flex-none cursor-pointer"
@@ -263,21 +315,45 @@ export function RoomsPage() {
             </div>
 
             {/* Room Grid */}
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-4 mb-4">
-                {enrichedRooms.map(room => (
-                    <RoomBox
-                        key={room.id}
-                        bookingOrder={bookingOrders[room.id]}
-                        room={room}
-                        selectedRoom={enrichedSelectedRoom}
-                        onClick={() => handleCardClick(room)}
-                    />
-                ))}
-            </div>
+            {isLoading ? (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-4 mb-4">
+                    {Array.from({ length: 8 }).map((_, idx) => (
+                        <div
+                            key={idx}
+                            className="h-[120px] rounded-xl border border-slate-200 bg-slate-50/50 animate-pulse flex flex-col justify-between p-3"
+                        >
+                            <div className="flex justify-between items-start">
+                                <div className="h-5 w-12 bg-slate-200 rounded-md" />
+                                <div className="h-5 w-5 bg-slate-200 rounded-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="h-3 w-16 bg-slate-200 rounded-md" />
+                                <div className="h-2 w-20 bg-slate-200 rounded-md" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-4 mb-4">
+                    {enrichedRooms.map(room => (
+                        <RoomBox
+                            key={room.id}
+                            bookingOrder={bookingOrders[room.id]}
+                            room={room}
+                            selectedRoom={enrichedSelectedRoom}
+                            onClick={() => handleCardClick(room)}
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Grid Count Footer */}
             <div className="flex justify-end pt-2 text-sm text-slate-500 font-normal">
-                Displaying {rooms.length} of {rooms.length} rooms
+                {isLoading ? (
+                    <div className="h-4 w-32 bg-slate-100 animate-pulse rounded-md" />
+                ) : (
+                    `Displaying ${rooms.length} of ${rooms.length} rooms`
+                )}
             </div>
 
             {/* Room Details Overlay Drawer */}
@@ -343,7 +419,9 @@ export function RoomsPage() {
                                         </div>
                                         <div>
                                             <div className="font-semibold text-slate-800 text-xs">Standard Room</div>
-                                            <div className="text-[10px] text-slate-500">Standard bedding configuration and regular pricing rules.</div>
+                                            <div className="text-[10px] text-slate-500">
+                                                Standard bedding configuration and regular pricing rules.
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg border border-slate-150">
@@ -351,8 +429,12 @@ export function RoomsPage() {
                                             <Crown className="h-4.5 w-4.5" />
                                         </div>
                                         <div>
-                                            <div className="font-semibold text-slate-800 text-xs">Premium Male Room (King)</div>
-                                            <div className="text-[10px] text-slate-500">Premium king suite designated or optimized for male occupancy.</div>
+                                            <div className="font-semibold text-slate-800 text-xs">
+                                                Premium Male Room (King)
+                                            </div>
+                                            <div className="text-[10px] text-slate-500">
+                                                Premium king suite designated or optimized for male occupancy.
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg border border-slate-150">
@@ -360,8 +442,12 @@ export function RoomsPage() {
                                             <Gem className="h-4.5 w-4.5" />
                                         </div>
                                         <div>
-                                            <div className="font-semibold text-slate-800 text-xs">Premium Female Room (Queen)</div>
-                                            <div className="text-[10px] text-slate-500">Premium queen suite designated or optimized for female occupancy.</div>
+                                            <div className="font-semibold text-slate-800 text-xs">
+                                                Premium Female Room (Queen)
+                                            </div>
+                                            <div className="text-[10px] text-slate-500">
+                                                Premium queen suite designated or optimized for female occupancy.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -362,8 +362,11 @@ export function PaymentsPage() {
                     <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
                         {isLoading ? (
                             <tr>
-                                <td colSpan={9} className="text-center py-10 text-slate-400 italic">
-                                    Fetching ledger transactions...
+                                <td colSpan={9} className="text-center py-12">
+                                    <div className="flex flex-col items-center justify-center gap-2.5">
+                                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+                                        <span className="text-xs text-slate-450 font-semibold animate-pulse">Fetching ledger transactions...</span>
+                                    </div>
                                 </td>
                             </tr>
                         ) : filteredBookings.length === 0 ? (

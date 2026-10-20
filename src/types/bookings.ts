@@ -59,9 +59,11 @@ export interface SortConfig {
 export interface PaymentResponse {
     id: number;
     bookingId: number;
-    paymentMethod: "CASH" | "ONLINE";
+    paymentMethod: "CASH" | "ONLINE" | "SPLIT";
     totalAmount: number;
     amountPaid: number;
+    cashAmount?: number;
+    onlineAmount?: number;
     status: "PENDING" | "COMPLETED";
     paymentDate?: string;
     transactionId?: string;

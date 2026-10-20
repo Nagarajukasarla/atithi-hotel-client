@@ -8,6 +8,7 @@ export interface FrontDeskBookingViewProps {
     onSearch: (query: AvailabilityQuery) => void;
     onBookNow: (room: CandidateRoom) => void;
     isSearching?: boolean;
+    isLoading?: boolean;
     className?: string;
 }
 
@@ -16,12 +17,13 @@ export function FrontDeskBookingView({
     onSearch,
     onBookNow,
     isSearching = false,
+    isLoading = false,
     className,
 }: FrontDeskBookingViewProps) {
     return (
         <div className={cn("space-y-5", className)}>
             <AvailabilitySearchForm isSearching={isSearching} onSearch={onSearch} />
-            <RoomAvailabilityTable onBookNow={onBookNow} rooms={rooms} />
+            <RoomAvailabilityTable onBookNow={onBookNow} rooms={rooms} isLoading={isLoading || isSearching} />
         </div>
     );
 }

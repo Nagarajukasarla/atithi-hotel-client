@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 export function BookingPage() {
     const [activeTab, setActiveTab] = React.useState<BookingTabValue>("frontDesk");
     const [allRooms, setAllRooms] = React.useState<CandidateRoom[]>([]);
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
     const [filteredRooms, setFilteredRooms] = React.useState<CandidateRoom[]>([]);
     const [roomTypesList, setRoomTypesList] = React.useState<RoomTypeConfig[]>([]);
     const [reservations] = React.useState<ChannelReservation[]>(MOCK_CHANNEL_RESERVATIONS);
@@ -45,13 +46,19 @@ export function BookingPage() {
     // Payment State
     const [modalStep, setModalStep] = React.useState<"form" | "payment">("form");
     const [createdBooking, setCreatedBooking] = React.useState<any | null>(null);
-    const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "ONLINE">("CASH");
     const [paymentTotalAmount, setPaymentTotalAmount] = React.useState<number>(0);
     const [paymentAmountPaid, setPaymentAmountPaid] = React.useState<number>(0);
+    const [paymentCashAmount, setPaymentCashAmount] = React.useState<number>(0);
+    const [paymentOnlineAmount, setPaymentOnlineAmount] = React.useState<number>(0);
     const [isPaymentCompleted, setIsPaymentCompleted] = React.useState<boolean>(true);
     const [paymentTransactionId, setPaymentTransactionId] = React.useState<string>("");
 
+    React.useEffect(() => {
+        setPaymentAmountPaid(paymentCashAmount + paymentOnlineAmount);
+    }, [paymentCashAmount, paymentOnlineAmount]);
+
     const loadInitialData = React.useCallback(async () => {
+        setIsLoading(true);
         try {
             const [roomsRes, typesRes] = await Promise.all([
                 roomService.getRooms(),
@@ -95,6 +102,8 @@ export function BookingPage() {
             }
         } catch (error) {
             console.error("Failed to fetch initial rooms/room-types configurations for booking:", error);
+        } finally {
+            setIsLoading(false);
         }
     }, []);
 
@@ -108,6 +117,11 @@ export function BookingPage() {
             return dateStr.substring(0, 16);
         }
         return `${dateStr}T${defaultTime}`;
+    };
+
+    const toLocalISOString = (date: Date): string => {
+        const tzOffset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
     };
 
     const handleSearch = async (query: AvailabilityQuery) => {
@@ -194,9 +208,10 @@ export function BookingPage() {
         setIsHourly(false);
         setValidationErrors({});
         setCreatedBooking(null);
-        setPaymentMethod("CASH");
         setPaymentTotalAmount(0);
         setPaymentAmountPaid(0);
+        setPaymentCashAmount(0);
+        setPaymentOnlineAmount(0);
         setIsPaymentCompleted(true);
         setPaymentTransactionId("");
 
@@ -209,11 +224,29 @@ export function BookingPage() {
                     setPaymentTotalAmount(res.data.totalPrice || 0);
                     setPaymentAmountPaid(res.data.totalPrice || 0);
                     if (res.data.payment) {
-                        setPaymentMethod(res.data.payment.paymentMethod);
                         setPaymentTotalAmount(res.data.payment.totalAmount);
                         setPaymentAmountPaid(res.data.payment.amountPaid);
+                        
+                        const cash = res.data.payment.cashAmount;
+                        const online = res.data.payment.onlineAmount;
+                        if (cash !== undefined && online !== undefined) {
+                            setPaymentCashAmount(cash);
+                            setPaymentOnlineAmount(online);
+                        } else {
+                            if (res.data.payment.paymentMethod === "ONLINE") {
+                                setPaymentCashAmount(0);
+                                setPaymentOnlineAmount(res.data.payment.amountPaid);
+                            } else {
+                                setPaymentCashAmount(res.data.payment.amountPaid);
+                                setPaymentOnlineAmount(0);
+                            }
+                        }
+
                         setIsPaymentCompleted(res.data.payment.status === "COMPLETED");
                         setPaymentTransactionId(res.data.payment.transactionId || "");
+                    } else {
+                        setPaymentCashAmount(res.data.totalPrice || 0);
+                        setPaymentOnlineAmount(0);
                     }
                     setModalStep("payment");
                     setIsModalOpen(true);
@@ -313,8 +346,8 @@ export function BookingPage() {
             const payload = {
                 roomId: selectedBookingRoom.id,
                 isHourly,
-                checkIn: new Date(checkIn).toISOString(),
-                checkOut: new Date(checkOut).toISOString(),
+                checkIn: toLocalISOString(new Date(checkIn)),
+                checkOut: toLocalISOString(new Date(checkOut)),
                 guests: activeGuests.map(g => ({
                     name: g.name.trim(),
                     aadhaarNumber: g.aadhaarNumber.replace(/\s/g, ""),
@@ -328,7 +361,8 @@ export function BookingPage() {
             if (res.success && res.data) {
                 setCreatedBooking(res.data);
                 setPaymentTotalAmount(res.data.totalPrice || 0);
-                setPaymentAmountPaid(res.data.totalPrice || 0);
+                setPaymentCashAmount(res.data.totalPrice || 0);
+                setPaymentOnlineAmount(0);
                 setNotification(`Booking successfully confirmed for Room #${selectedBookingRoom.number}! Now enter payment details.`);
                 setModalStep("payment");
                 void loadInitialData();
@@ -347,12 +381,15 @@ export function BookingPage() {
         if (!createdBooking) return;
         setIsSubmitting(true);
         try {
+            const method = paymentCashAmount > 0 && paymentOnlineAmount > 0 ? "SPLIT" : (paymentOnlineAmount > 0 ? "ONLINE" : "CASH");
             const payload = {
-                paymentMethod,
+                paymentMethod: method,
                 totalAmount: paymentTotalAmount,
                 amountPaid: paymentAmountPaid,
+                cashAmount: paymentCashAmount,
+                onlineAmount: paymentOnlineAmount,
                 status: isPaymentCompleted ? "COMPLETED" : "PENDING",
-                transactionId: paymentMethod === "ONLINE" ? paymentTransactionId.trim() : undefined,
+                transactionId: paymentOnlineAmount > 0 ? paymentTransactionId.trim() : undefined,
             };
             const res = await bookingService.createOrUpdatePayment(String(createdBooking.id), payload);
             if (res.success) {
@@ -456,6 +493,7 @@ export function BookingPage() {
                 {activeTab === "frontDesk" ? (
                     <FrontDeskBookingView
                         isSearching={isSearching}
+                        isLoading={isLoading}
                         rooms={filteredRooms}
                         onBookNow={handleBookNow}
                         onSearch={handleSearch}
@@ -767,44 +805,53 @@ export function BookingPage() {
                                             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Payment Details</h3>
                                             
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {/* Payment Method select */}
+                                                {/* Cash Paid */}
                                                 <div className="space-y-1">
-                                                    <label className="text-xs font-semibold text-slate-600 block">Payment Method *</label>
-                                                    <select
+                                                    <label className="text-xs font-semibold text-slate-600 block">Cash Paid (₹) *</label>
+                                                    <input
+                                                        type="number"
                                                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                        value={paymentMethod}
-                                                        onChange={e => setPaymentMethod(e.target.value as any)}
-                                                    >
-                                                        <option value="CASH">Cash</option>
-                                                        <option value="ONLINE">Online Payment (UPI/Card)</option>
-                                                    </select>
+                                                        value={paymentCashAmount}
+                                                        onChange={e => setPaymentCashAmount(parseFloat(e.target.value) || 0)}
+                                                    />
                                                 </div>
 
-                                                {/* Original Total Amount */}
+                                                {/* Online Paid */}
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-semibold text-slate-600 block">Online Paid (₹) *</label>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                        value={paymentOnlineAmount}
+                                                        onChange={e => setPaymentOnlineAmount(parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
+
+                                                {/* Original Price */}
                                                 <div className="space-y-1">
                                                     <label className="text-xs font-semibold text-slate-600 block">Original Price (₹)</label>
                                                     <input
                                                         type="number"
-                                                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-700"
                                                         value={paymentTotalAmount}
-                                                        onChange={e => setPaymentTotalAmount(parseFloat(e.target.value) || 0)}
-                                                    />
+                                                        readOnly
+                                                     />
                                                 </div>
 
-                                                {/* Amount Paid */}
+                                                {/* Total Amount Paid */}
                                                 <div className="space-y-1">
-                                                    <label className="text-xs font-semibold text-slate-600 block">Amount Paid (₹) *</label>
+                                                    <label className="text-xs font-semibold text-slate-600 block">Total Amount Paid (₹)</label>
                                                     <input
                                                         type="number"
-                                                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-blue-600"
                                                         value={paymentAmountPaid}
-                                                        onChange={e => setPaymentAmountPaid(parseFloat(e.target.value) || 0)}
+                                                        readOnly
                                                     />
                                                 </div>
 
                                                 {/* Transaction ID (Online only) */}
-                                                {paymentMethod === "ONLINE" && (
-                                                    <div className="space-y-1">
+                                                {paymentOnlineAmount > 0 && (
+                                                    <div className="space-y-1 sm:col-span-2">
                                                         <label className="text-xs font-semibold text-slate-600 block">Transaction Reference ID</label>
                                                         <input
                                                             type="text"

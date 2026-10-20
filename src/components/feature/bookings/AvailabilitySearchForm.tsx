@@ -12,18 +12,20 @@ export interface AvailabilitySearchFormProps {
     className?: string;
 }
 
-function getDefaultDates() {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(12, 0, 0, 0);
+const toLocalISOString = (date: Date): string => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+};
 
-    const dayAfter = new Date();
-    dayAfter.setDate(dayAfter.getDate() + 2);
-    dayAfter.setHours(22, 30, 0, 0);
+function getDefaultDates() {
+    const now = new Date();
+    
+    const tomorrow = new Date();
+    tomorrow.setDate(now.getDate() + 1);
 
     return {
-        checkIn: tomorrow.toISOString(),
-        checkOut: dayAfter.toISOString(),
+        checkIn: toLocalISOString(now),
+        checkOut: toLocalISOString(tomorrow),
     };
 }
 
@@ -56,8 +58,8 @@ export function AvailabilitySearchForm({ onSearch, isSearching = false, classNam
 
         const query: AvailabilityQuery = {
             roomType,
-            checkIn: inDate.toISOString(),
-            checkOut: outDate.toISOString(),
+            checkIn: toLocalISOString(inDate),
+            checkOut: toLocalISOString(outDate),
             adults,
             teens: 0,
             children,

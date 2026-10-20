@@ -10,9 +10,14 @@ export const TOAST_MESSAGES = {
 
     // Bed Toast Messages
     BEDS_SAVE_SUCCESS: "Hotel beds saved successfully.",
+    BEDS_SAVE_ERROR: "Failed to save bed types.",
 
     // Amenities Toast Messages
     AMENITIES_UPDATE_SUCCESS: "Hotel amenities updated successfully!",
+
+    // Room Type Toast Messages
+    ROOM_TYPES_UPDATE_SUCCESS: "Room types settings updated successfully!",
+    ROOM_TYPES_UPDATE_ERROR: "Failed to update room types.",
 
     // Generic API Error Messages
     API_NOT_FOUND_ERROR: "Changes not made: error occurred. API not found.",

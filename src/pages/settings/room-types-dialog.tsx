@@ -17,6 +17,10 @@ export interface RoomTypeConfig {
     status: "ACTIVE" | "INACTIVE";
     isPremium?: boolean;
     premiumType?: "FEMALE" | "MALE" | "";
+    isHourly?: boolean;
+    hourlyPrice?: number;
+    activeRoomsCount?: number;
+    totalRoomsCount?: number;
 }
 
 export interface RoomTypesDialogProps {
@@ -49,6 +53,8 @@ export function RoomTypesDialog({ isOpen, initialRoomTypes, availableAmenityIds,
     const [formStatus, setFormStatus] = React.useState<"ACTIVE" | "INACTIVE">("ACTIVE");
     const [formIsPremium, setFormIsPremium] = React.useState<boolean>(false);
     const [formPremiumType, setFormPremiumType] = React.useState<"FEMALE" | "MALE" | "">("");
+    const [formIsHourly, setFormIsHourly] = React.useState<boolean>(false);
+    const [formHourlyPrice, setFormHourlyPrice] = React.useState<number>(0);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -74,6 +80,8 @@ export function RoomTypesDialog({ isOpen, initialRoomTypes, availableAmenityIds,
         setFormStatus("ACTIVE");
         setFormIsPremium(false);
         setFormPremiumType("");
+        setFormIsHourly(false);
+        setFormHourlyPrice(0);
         setView("form");
     };
 
@@ -91,6 +99,8 @@ export function RoomTypesDialog({ isOpen, initialRoomTypes, availableAmenityIds,
         setFormStatus(rt.status);
         setFormIsPremium(rt.isPremium || false);
         setFormPremiumType(rt.premiumType || "");
+        setFormIsHourly(rt.isHourly || false);
+        setFormHourlyPrice(rt.hourlyPrice || 0);
         setView("form");
     };
 
@@ -120,6 +130,8 @@ export function RoomTypesDialog({ isOpen, initialRoomTypes, availableAmenityIds,
             status: formStatus,
             isPremium: formIsPremium,
             premiumType: formIsPremium ? formPremiumType : "",
+            isHourly: formIsHourly,
+            hourlyPrice: formIsHourly ? formHourlyPrice : undefined,
         };
 
         if (editingRoomType) {
@@ -228,6 +240,11 @@ export function RoomTypesDialog({ isOpen, initialRoomTypes, availableAmenityIds,
                                                         Premium ({rt.premiumType})
                                                     </span>
                                                 )}
+                                                {rt.isHourly && (
+                                                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase">
+                                                        Hourly
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {rt.description && (
@@ -236,12 +253,23 @@ export function RoomTypesDialog({ isOpen, initialRoomTypes, availableAmenityIds,
                                                 </p>
                                             )}
 
-                                            <div className="flex items-center text-lg font-bold text-slate-800 leading-none">
-                                                <IndianRupee className="w-4 h-4 text-slate-700" />
-                                                <span>{rt.basePrice.toLocaleString()}</span>
-                                                <span className="text-[10px] text-slate-400 font-normal ml-1">
-                                                    / night
-                                                </span>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center text-lg font-bold text-slate-800 leading-none">
+                                                    <IndianRupee className="w-4 h-4 text-slate-700" />
+                                                    <span>{rt.basePrice.toLocaleString()}</span>
+                                                    <span className="text-[10px] text-slate-400 font-normal ml-1">
+                                                        / night
+                                                    </span>
+                                                </div>
+                                                {rt.isHourly && rt.hourlyPrice !== undefined && (
+                                                    <div className="flex items-center text-sm font-semibold text-blue-700 leading-none">
+                                                        <IndianRupee className="w-3.5 h-3.5 text-blue-600" />
+                                                        <span>{rt.hourlyPrice.toLocaleString()}</span>
+                                                        <span className="text-[10px] text-blue-400 font-normal ml-1">
+                                                            / hour
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="space-y-1 pt-1.5 border-t border-slate-100">
@@ -502,6 +530,42 @@ export function RoomTypesDialog({ isOpen, initialRoomTypes, availableAmenityIds,
                                             MALE Type
                                         </button>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Is Hourly */}
+                            <div className="space-y-1.5 col-span-1 flex flex-col justify-end pb-1.5">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        className="h-4.5 w-4.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        checked={formIsHourly}
+                                        onChange={e => {
+                                            setFormIsHourly(e.target.checked);
+                                            if (e.target.checked && !formHourlyPrice) {
+                                                setFormHourlyPrice(500);
+                                            }
+                                        }}
+                                    />
+                                    Is Hourly
+                                </label>
+                            </div>
+
+                            {/* Hourly Price */}
+                            {formIsHourly && (
+                                <div className="space-y-1.5 col-span-1 animate-in fade-in duration-200">
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                        Hourly Price (INR)
+                                    </label>
+                                    <input
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        type="number"
+                                        min="0"
+                                        placeholder="e.g. 500"
+                                        value={formHourlyPrice}
+                                        onChange={e => setFormHourlyPrice(Number(e.target.value))}
+                                        required={formIsHourly}
+                                    />
                                 </div>
                             )}
 

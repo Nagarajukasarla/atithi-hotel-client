@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 export interface RoomAvailabilityTableProps {
     rooms: CandidateRoom[];
     onBookNow: (room: CandidateRoom) => void;
+    isLoading?: boolean;
     className?: string;
 }
 
-export function RoomAvailabilityTable({ rooms, onBookNow, className }: RoomAvailabilityTableProps) {
+export function RoomAvailabilityTable({ rooms, onBookNow, isLoading = false, className }: RoomAvailabilityTableProps) {
     const [sort, setSort] = React.useState<SortConfig>({
         field: "number",
         direction: "asc",
@@ -97,7 +98,27 @@ export function RoomAvailabilityTable({ rooms, onBookNow, className }: RoomAvail
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e2e8f0]">
-                            {paginatedRooms.length === 0 ? (
+                            {isLoading ? (
+                                Array.from({ length: 5 }).map((_, idx) => (
+                                    <tr key={idx} className="animate-pulse">
+                                        <td className="py-3.5 px-4">
+                                            <div className="h-4 w-12 bg-slate-200 rounded-md" />
+                                        </td>
+                                        <td className="py-3.5 px-4">
+                                            <div className="h-5 w-24 bg-slate-200 rounded-full" />
+                                        </td>
+                                        <td className="py-3.5 px-4">
+                                            <div className="h-4 w-20 bg-slate-200 rounded-md" />
+                                        </td>
+                                        <td className="py-3.5 px-4">
+                                            <div className="h-3.5 w-48 bg-slate-200 rounded-md" />
+                                        </td>
+                                        <td className="py-3.5 px-4 text-right">
+                                            <div className="h-8 w-20 ml-auto bg-slate-200 rounded-md" />
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : paginatedRooms.length === 0 ? (
                                 <tr>
                                     <td className="py-8 text-center text-slate-400 font-medium" colSpan={5}>
                                         No candidate rooms available for the selected criteria.
@@ -139,7 +160,23 @@ export function RoomAvailabilityTable({ rooms, onBookNow, className }: RoomAvail
 
             {/* Mobile Card List View (<768px) */}
             <div className="block md:hidden space-y-3">
-                {paginatedRooms.length === 0 ? (
+                {isLoading ? (
+                    Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={idx} className="rounded-lg border border-slate-200 bg-white p-4 space-y-3 animate-pulse shadow-xs">
+                            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                                <div className="h-4.5 w-16 bg-slate-200 rounded-md" />
+                                <div className="h-5 w-24 bg-slate-200 rounded-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="h-4 w-28 bg-slate-200 rounded-md" />
+                                <div className="h-3.5 w-48 bg-slate-200 rounded-md" />
+                            </div>
+                            <div className="pt-2 border-t border-slate-100 flex justify-end">
+                                <div className="h-8 w-20 bg-slate-200 rounded-md" />
+                            </div>
+                        </div>
+                    ))
+                ) : paginatedRooms.length === 0 ? (
                     <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-xs text-slate-400 font-medium">
                         No candidate rooms available.
                     </div>

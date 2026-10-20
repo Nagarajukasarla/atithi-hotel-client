@@ -141,32 +141,7 @@ export function SettingsPage() {
 
     const handleSaveRoomTypes = async (newRoomTypes: RoomTypeConfig[]) => {
         setIsLoading(true);
-        // Identify operations for toast messaging
-        const deletedCount = roomTypes.filter(oldRt => !newRoomTypes.some(newRt => newRt.id === oldRt.id)).length;
-        const createdCount = newRoomTypes.filter(rt => String(rt.id).startsWith("rt-")).length;
-        
-        let updatedCount = 0;
-        for (const rt of newRoomTypes) {
-            if (!String(rt.id).startsWith("rt-")) {
-                const oldRt = roomTypes.find(o => String(o.id) === String(rt.id));
-                if (oldRt && (
-                    oldRt.name !== rt.name ||
-                    oldRt.description !== rt.description ||
-                    oldRt.basePrice !== rt.basePrice ||
-                    oldRt.maxAdults !== rt.maxAdults ||
-                    oldRt.maxChildren !== rt.maxChildren ||
-                    oldRt.maxOccupancy !== rt.maxOccupancy ||
-                    oldRt.bedType !== rt.bedType ||
-                    oldRt.size !== rt.size ||
-                    oldRt.status !== rt.status ||
-                    oldRt.isPremium !== rt.isPremium ||
-                    oldRt.premiumType !== rt.premiumType ||
-                    JSON.stringify(oldRt.amenityIds.slice().sort()) !== JSON.stringify(rt.amenityIds.slice().sort())
-                )) {
-                    updatedCount++;
-                }
-            }
-        }
+
 
         try {
             // 1. Identify deleted room types (items in previous state but not in new list)
@@ -192,6 +167,8 @@ export function SettingsPage() {
                     status: rt.status,
                     isPremium: rt.isPremium,
                     premiumType: rt.premiumType,
+                    isHourly: rt.isHourly,
+                    hourlyPrice: rt.hourlyPrice,
                 };
 
                 if (String(rt.id).startsWith("rt-")) {
@@ -204,26 +181,10 @@ export function SettingsPage() {
             // Reload configurations from backend to keep fully synced
             await fetchRoomTypes();
 
-            // Select proper user-friendly toast message
-            let successMessage = "Room types settings updated successfully!";
-            if (deletedCount > 0 && createdCount === 0 && updatedCount === 0) {
-                successMessage = deletedCount === 1 
-                    ? "Room type has been deleted successfully." 
-                    : `${deletedCount} room types deleted successfully.`;
-            } else if (createdCount > 0 && deletedCount === 0 && updatedCount === 0) {
-                successMessage = createdCount === 1 
-                    ? "Room type added successfully." 
-                    : `${createdCount} room types added successfully.`;
-            } else if (updatedCount > 0 && deletedCount === 0 && createdCount === 0) {
-                successMessage = updatedCount === 1 
-                    ? "Room type updated successfully." 
-                    : `${updatedCount} room types updated successfully.`;
-            }
-            toast(successMessage, "success");
+            toast(TOAST_MESSAGES.ROOM_TYPES_UPDATE_SUCCESS, "success");
         } catch (error) {
             console.error("Failed to sync room types with backend:", error);
-            const message = error instanceof Error ? error.message : TOAST_MESSAGES.API_NOT_FOUND_ERROR;
-            toast(message, "error");
+            toast(TOAST_MESSAGES.ROOM_TYPES_UPDATE_ERROR, "error");
             // Revert state by refetching
             await fetchRoomTypes();
         } finally {
@@ -236,44 +197,12 @@ export function SettingsPage() {
         setBeds(newBeds);
         localStorage.setItem("atithi_bed_types", JSON.stringify(newBeds));
 
-        // Identify operations for toast messaging
-        const deletedCount = beds.filter(oldBed => !newBeds.some(newBed => newBed.id === oldBed.id)).length;
-        const createdCount = newBeds.filter(b => String(b.id).startsWith("bed-")).length;
-        
-        let updatedCount = 0;
-        for (const b of newBeds) {
-            if (!String(b.id).startsWith("bed-")) {
-                const oldBed = beds.find(o => String(o.id) === String(b.id));
-                if (oldBed && (
-                    oldBed.name !== b.name ||
-                    oldBed.description !== b.description ||
-                    oldBed.maxAdults !== b.maxAdults ||
-                    oldBed.maxChildren !== b.maxChildren ||
-                    oldBed.capacity !== b.capacity
-                )) {
-                    updatedCount++;
-                }
-            }
-        }
+
 
         try {
             const response = await bedService.updateBeds(newBeds);
             if (response.success) {
-                let successMessage = "Bed types settings updated successfully!";
-                if (deletedCount > 0 && createdCount === 0 && updatedCount === 0) {
-                    successMessage = deletedCount === 1 
-                        ? "Bed type has been deleted successfully." 
-                        : `${deletedCount} bed types deleted successfully.`;
-                } else if (createdCount > 0 && deletedCount === 0 && updatedCount === 0) {
-                    successMessage = createdCount === 1 
-                        ? "Bed type added successfully." 
-                        : `${createdCount} bed types added successfully.`;
-                } else if (updatedCount > 0 && deletedCount === 0 && createdCount === 0) {
-                    successMessage = updatedCount === 1 
-                        ? "Bed type updated successfully." 
-                        : `${updatedCount} bed types updated successfully.`;
-                }
-                toast(successMessage, "success");
+                toast(TOAST_MESSAGES.BEDS_SAVE_SUCCESS, "success");
             } else {
                 throw new Error(response.message || "Failed to update bed types");
             }
@@ -281,8 +210,7 @@ export function SettingsPage() {
             console.error("Failed to update bed types:", error);
             setBeds(previousBeds);
             localStorage.setItem("atithi_bed_types", JSON.stringify(previousBeds));
-            const message = error instanceof Error ? error.message : TOAST_MESSAGES.API_NOT_FOUND_ERROR;
-            toast(message, "error");
+            toast(TOAST_MESSAGES.BEDS_SAVE_ERROR, "error");
         }
     };
 

@@ -65,6 +65,20 @@ class RoomService {
             method: "DELETE",
         });
     }
+
+    /**
+     * Fetch hotel overview statistics KPIs.
+     */
+    getOverviewStats() {
+        return request<ApiResponse<{
+            todayCheckInCount: number;
+            todayCheckOutCount: number;
+            totalGuestsInHotel: number;
+            totalAvailableRooms: number;
+        }>>(`${API_ROUTES.HOTEL_ROOMS}/overview-stats`, {
+            method: "GET",
+        });
+    }
 }
 
 export const roomService = new RoomService();

@@ -52,14 +52,6 @@ export const INITIAL_ROOM_TYPE_METRICS: RoomTypeMetric[] = [
         dailyPrice: 2400,
     },
     {
-        id: "executive",
-        title: "Executive",
-        active: 3,
-        total: 8,
-        hourlyPrice: 500,
-        dailyPrice: 3500,
-    },
-    {
         id: "vip",
         title: "VIP",
         active: 2,

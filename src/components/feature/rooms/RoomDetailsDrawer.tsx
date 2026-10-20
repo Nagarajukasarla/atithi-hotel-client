@@ -45,26 +45,45 @@ export function RoomDetailsDrawer({
 }: RoomDetailsDrawerProps) {
     // Payment editing states
     const [isEditingPayment, setIsEditingPayment] = React.useState<boolean>(false);
-    const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "ONLINE">("CASH");
     const [paymentTotalAmount, setPaymentTotalAmount] = React.useState<number>(0);
     const [paymentAmountPaid, setPaymentAmountPaid] = React.useState<number>(0);
+    const [paymentCashAmount, setPaymentCashAmount] = React.useState<number>(0);
+    const [paymentOnlineAmount, setPaymentOnlineAmount] = React.useState<number>(0);
     const [isPaymentCompleted, setIsPaymentCompleted] = React.useState<boolean>(true);
     const [paymentTransactionId, setPaymentTransactionId] = React.useState<string>("");
     const [isSavingPayment, setIsSavingPayment] = React.useState<boolean>(false);
 
-    // Sync payment details when bookingOrder updates
+    React.useEffect(() => {
+        setPaymentAmountPaid(paymentCashAmount + paymentOnlineAmount);
+    }, [paymentCashAmount, paymentOnlineAmount]);
+
     React.useEffect(() => {
         if (bookingOrder) {
             if (bookingOrder.payment) {
-                setPaymentMethod(bookingOrder.payment.paymentMethod);
                 setPaymentTotalAmount(bookingOrder.payment.totalAmount);
-                setPaymentAmountPaid(bookingOrder.payment.amountPaid);
+                
+                const cash = bookingOrder.payment.cashAmount;
+                const online = bookingOrder.payment.onlineAmount;
+                if (cash !== undefined && online !== undefined) {
+                    setPaymentCashAmount(cash);
+                    setPaymentOnlineAmount(online);
+                } else {
+                    const method = bookingOrder.payment.paymentMethod;
+                    if (method === "ONLINE") {
+                        setPaymentCashAmount(0);
+                        setPaymentOnlineAmount(bookingOrder.payment.amountPaid);
+                    } else {
+                        setPaymentCashAmount(bookingOrder.payment.amountPaid);
+                        setPaymentOnlineAmount(0);
+                    }
+                }
+                
                 setIsPaymentCompleted(bookingOrder.payment.status === "COMPLETED");
                 setPaymentTransactionId(bookingOrder.payment.transactionId || "");
             } else {
-                setPaymentMethod("CASH");
                 setPaymentTotalAmount(room?.basePrice || 0);
-                setPaymentAmountPaid(room?.basePrice || 0);
+                setPaymentCashAmount(room?.basePrice || 0);
+                setPaymentOnlineAmount(0);
                 setIsPaymentCompleted(true);
                 setPaymentTransactionId("");
             }
@@ -229,9 +248,25 @@ export function RoomDetailsDrawer({
                                                 ₹{bookingOrder.payment.totalAmount.toLocaleString()}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between items-center text-slate-600">
-                                            <span>Amount Paid</span>
-                                            <span className="font-semibold text-slate-800">
+                                        {bookingOrder.payment.cashAmount !== undefined && bookingOrder.payment.cashAmount > 0 && (
+                                            <div className="flex justify-between items-center text-slate-600">
+                                                <span>Cash Paid</span>
+                                                <span className="font-medium text-slate-800">
+                                                    ₹{bookingOrder.payment.cashAmount.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {bookingOrder.payment.onlineAmount !== undefined && bookingOrder.payment.onlineAmount > 0 && (
+                                            <div className="flex justify-between items-center text-slate-600">
+                                                <span>Online Paid</span>
+                                                <span className="font-medium text-slate-800">
+                                                    ₹{bookingOrder.payment.onlineAmount.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center text-slate-600 pt-1 border-t border-slate-200/40">
+                                            <span>Total Amount Paid</span>
+                                            <span className="font-bold text-blue-600">
                                                 ₹{bookingOrder.payment.amountPaid.toLocaleString()}
                                             </span>
                                         </div>
@@ -265,43 +300,52 @@ export function RoomDetailsDrawer({
                         ) : (
                             <div className="space-y-3 pt-1">
                                 <div className="space-y-2">
-                                    {/* Payment Method */}
+                                    {/* Cash Paid */}
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-bold uppercase text-slate-500 block">Method *</label>
-                                        <select
-                                            className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
-                                            value={paymentMethod}
-                                            onChange={e => setPaymentMethod(e.target.value as any)}
-                                        >
-                                            <option value="CASH">Cash</option>
-                                            <option value="ONLINE">Online</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Original Amount */}
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold uppercase text-slate-500 block">Total Original (₹) *</label>
+                                        <label className="text-[10px] font-bold uppercase text-slate-500 block">Cash Paid (₹) *</label>
                                         <input
                                             type="number"
                                             className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
-                                            value={paymentTotalAmount}
-                                            onChange={e => setPaymentTotalAmount(parseFloat(e.target.value) || 0)}
+                                            value={paymentCashAmount}
+                                            onChange={e => setPaymentCashAmount(parseFloat(e.target.value) || 0)}
                                         />
                                     </div>
 
-                                    {/* Amount Paid */}
+                                    {/* Online Paid */}
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-bold uppercase text-slate-500 block">Amount Paid (₹) *</label>
+                                        <label className="text-[10px] font-bold uppercase text-slate-500 block">Online Paid (₹) *</label>
                                         <input
                                             type="number"
                                             className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
+                                            value={paymentOnlineAmount}
+                                            onChange={e => setPaymentOnlineAmount(parseFloat(e.target.value) || 0)}
+                                        />
+                                    </div>
+
+                                    {/* Original Price */}
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase text-slate-500 block">Original Price (₹)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700"
+                                            value={paymentTotalAmount}
+                                            readOnly
+                                        />
+                                    </div>
+
+                                    {/* Total Amount Paid */}
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase text-slate-500 block">Total Amount Paid (₹)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-blue-600"
                                             value={paymentAmountPaid}
-                                            onChange={e => setPaymentAmountPaid(parseFloat(e.target.value) || 0)}
+                                            readOnly
                                         />
                                     </div>
 
                                     {/* Transaction ID */}
-                                    {paymentMethod === "ONLINE" && (
+                                    {paymentOnlineAmount > 0 && (
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-bold uppercase text-slate-500 block">Reference ID</label>
                                             <input
@@ -343,12 +387,15 @@ export function RoomDetailsDrawer({
                                         onClick={async () => {
                                             if (!onUpdatePayment) return;
                                             setIsSavingPayment(true);
+                                            const method = paymentCashAmount > 0 && paymentOnlineAmount > 0 ? "SPLIT" : (paymentOnlineAmount > 0 ? "ONLINE" : "CASH");
                                             const success = await onUpdatePayment(bookingOrder.id, {
-                                                paymentMethod,
+                                                paymentMethod: method as "CASH" | "ONLINE" | "SPLIT",
                                                 totalAmount: paymentTotalAmount,
                                                 amountPaid: paymentAmountPaid,
+                                                cashAmount: paymentCashAmount,
+                                                onlineAmount: paymentOnlineAmount,
                                                 status: isPaymentCompleted ? "COMPLETED" : "PENDING",
-                                                transactionId: paymentMethod === "ONLINE" ? paymentTransactionId.trim() : undefined,
+                                                transactionId: paymentOnlineAmount > 0 ? paymentTransactionId.trim() : undefined,
                                             });
                                             setIsSavingPayment(false);
                                             if (success) {
